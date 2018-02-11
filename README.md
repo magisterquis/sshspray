@@ -48,6 +48,11 @@ Use a stolen key and a stolen password against everything in a large network
 sshspray -user itadmin -pass spring2018 -key id_rsa.itadmin -script bad.sh -parallel 1000 172.16.0.0/12
 ```
 
+Run a script against a specific target list with long timeouts
+```bash
+sshspray -user root -pass password1 -targets ./vulnlist -timeout 1m
+```
+
 Usage
 -----
 ```
