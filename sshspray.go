@@ -10,12 +10,15 @@ package main
  */
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"sync"
+	"time"
 )
 
 func main() {
@@ -50,6 +53,16 @@ func main() {
 			200,
 			"Attack `N` targets in parallel",
 		)
+		timeout = flag.Duration(
+			"timeout",
+			4*time.Second,
+			"Connection and Authentication timeout `delay`",
+		)
+		targetFile = flag.String(
+			"targets",
+			"",
+			"Optional `file` with targets, one per line",
+		)
 	)
 	flag.Usage = func() {
 		fmt.Fprintf(
@@ -80,7 +93,7 @@ Options:
 	log.SetOutput(os.Stderr)
 
 	/* Make sure we have targets */
-	if 0 == flag.NArg() {
+	if 0 == flag.NArg() && "" == *targetFile {
 		fmt.Fprintf(os.Stderr, "No targets specified\n")
 		os.Exit(6)
 	}
@@ -107,26 +120,68 @@ Options:
 
 	/* Start attackers */
 	var (
-		wg = new(sync.WaitGroup)
-		ch = make(chan string)
+		wg  = new(sync.WaitGroup)
+		ach = make(chan string) /* Attack targets */
 	)
 	for i := uint(0); i < *nPar; i++ {
 		wg.Add(1)
-		go Attacker(ch, conf, *interpreter, script, wg)
+		go Attacker(ach, conf, *interpreter, script, *timeout, wg)
 	}
 
-	/* Send hosts to attackers */
-	for _, v := range flag.Args() {
-		if err := SendTargets(ch, v); nil != err {
+	/* Queue up targets */
+	tch := make(chan string)
+	go func() {
+		for t := range tch {
+			if err := SendTargets(ach, t); nil != err {
+				log.Printf(
+					"[%v] Unable to target: %v",
+					t,
+					err,
+				)
+			}
+		}
+		close(ach)
+	}()
+
+	/* Send targets from command line */
+	for _, t := range flag.Args() {
+		tch <- t
+	}
+
+	/* Send targets from the file, if we have one */
+	if "" != *targetFile {
+		if err := sendFromFile(tch, *targetFile); nil != err {
 			log.Printf(
-				"[%v] Unable to send for targeting: %v",
-				v,
+				"Error reading targets from %q: %v",
+				*targetFile,
 				err,
 			)
 		}
 	}
 
-	close(ch)
+	close(tch)
 	wg.Wait()
 	log.Printf("Done.")
+}
+
+/* sendFromFile sends non-blank, non-comment (#) lines from fn to ch */
+func sendFromFile(ch chan<- string, fn string) error {
+	/* Open file for reading */
+	f, err := os.Open(fn)
+	if nil != err {
+		return err
+	}
+	defer f.Close()
+
+	/* Read lines, send to ch */
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		/* Get a line, skip blanks and comments */
+		l := strings.TrimSpace(scanner.Text())
+		if "" == l || strings.HasPrefix(l, "#") {
+			continue
+		}
+		ch <- l
+	}
+	return scanner.Err()
 }

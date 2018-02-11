@@ -21,9 +21,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// DEFTIMEOUT is the default connect and handshake timeout
-const DEFTIMEOUT = time.Second
-
 // Attacker connects to targets and runs the script by passing it to the
 // interpreter's stdin.  Targets are read from ch.
 func Attacker(
@@ -31,12 +28,19 @@ func Attacker(
 	conf *ssh.ClientConfig,
 	interpreter string,
 	script []byte,
+	timeout time.Duration,
 	wg *sync.WaitGroup,
 ) {
 	defer wg.Done()
 
 	for t := range ch {
-		o, err := attack(t, conf, interpreter, bytes.NewReader(script))
+		o, err := attack(
+			t,
+			conf,
+			interpreter,
+			bytes.NewReader(script),
+			timeout,
+		)
 		/* Output with no error is a good thing */
 		if nil == err {
 			m := fmt.Sprintf("[%v] SUCCESS", t)
@@ -70,9 +74,10 @@ func attack(
 	conf *ssh.ClientConfig,
 	interpreter string,
 	script io.Reader,
+	timeout time.Duration,
 ) ([]byte, error) {
 	/* Connect to target */
-	c, err := net.DialTimeout("tcp", t, DEFTIMEOUT)
+	c, err := net.DialTimeout("tcp", t, timeout)
 	if nil != err {
 		return nil, err
 	}
@@ -93,7 +98,7 @@ func attack(
 	/* Wait for timeout or handshake */
 	select {
 	case <-done: /* Handshake happened */
-	case <-time.After(DEFTIMEOUT): /* Timeout */
+	case <-time.After(timeout): /* Timeout */
 		return nil, errors.New("handshake timeout")
 	}
 
