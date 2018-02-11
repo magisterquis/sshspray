@@ -68,17 +68,21 @@ start of exercises before the blue team has time to do anything.
 
 Options:
   -interpreter command
-        Interpreter command to which to pass script (default "/bin/sh")
+    	Interpreter command to which to pass script (default "/bin/sh")
   -key key
-        SSH private key
+    	SSH private key
   -parallel N
-        Attack N targets in parallel (default 200)
+    	Attack N targets in parallel (default 200)
   -pass password
-        SSH password, or - to read from stdin
+    	SSH password, or - to read from stdin
   -script file
-        Name of script file to run on targets (default "sshspray.script")
+    	Name of script file to run on targets (default "sshspray.script")
+  -targets file
+    	Optional file with targets, one per line
+  -timeout delay
+    	Connection and Authentication timeout delay (default 4s)
   -user username
-        SSH username (default "root")
+    	SSH username (default "root")
 ```
 
 Windows
