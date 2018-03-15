@@ -22,7 +22,8 @@ import (
 )
 
 // Attacker connects to targets and runs the script by passing it to the
-// interpreter's stdin.  Targets are read from ch.
+// interpreter's stdin.  Targets are read from ch.  If noQuoteOutput is true,
+// Output will be printed as seen.  This is good for debugging, but dangerous.
 func Attacker(
 	ch <-chan string,
 	conf *ssh.ClientConfig,
@@ -30,8 +31,14 @@ func Attacker(
 	script []byte,
 	timeout time.Duration,
 	wg *sync.WaitGroup,
+	noQuoteOutput bool,
 ) {
 	defer wg.Done()
+
+	ofs := "q"
+	if noQuoteOutput {
+		ofs = "s"
+	}
 
 	for t := range ch {
 		o, err := attack(
@@ -45,7 +52,7 @@ func Attacker(
 		if nil == err {
 			m := fmt.Sprintf("[%v] SUCCESS", t)
 			if 0 != len(o) {
-				m += fmt.Sprintf(": %q", string(o))
+				m += fmt.Sprintf(": %"+ofs, string(o))
 			}
 			log.Printf("%v", m)
 			continue
@@ -61,7 +68,7 @@ func Attacker(
 		/* All other errors are execution errors */
 		m := fmt.Sprintf("[%v] FAIL (%v)", t, err)
 		if 0 != len(o) {
-			m += fmt.Sprintf(": %q", string(o))
+			m += fmt.Sprintf(": %"+ofs, string(o))
 		}
 		log.Printf("%v", m)
 	}

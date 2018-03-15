@@ -63,6 +63,11 @@ func main() {
 			"",
 			"Optional `file` with targets, one per line",
 		)
+		noQuoteOutput = flag.Bool(
+			"no-quote-output",
+			false,
+			"Do not quote (escape) shell output",
+		)
 	)
 	flag.Usage = func() {
 		fmt.Fprintf(
@@ -125,7 +130,15 @@ Options:
 	)
 	for i := uint(0); i < *nPar; i++ {
 		wg.Add(1)
-		go Attacker(ach, conf, *interpreter, script, *timeout, wg)
+		go Attacker(
+			ach,
+			conf,
+			*interpreter,
+			script,
+			*timeout,
+			wg,
+			*noQuoteOutput,
+		)
 	}
 
 	/* Queue up targets */
