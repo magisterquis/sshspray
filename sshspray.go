@@ -68,6 +68,11 @@ func main() {
 			false,
 			"Do not quote (escape) shell output",
 		)
+		allowKI = flag.Bool(
+			"allow-keyboard-interactive",
+			false,
+			"Allow keyboard-interactive authentication",
+		)
 	)
 	flag.Usage = func() {
 		fmt.Fprintf(
@@ -121,7 +126,7 @@ Options:
 	log.Printf("Read %v-byte script from %v", len(script), *scriptFile)
 
 	/* Roll an SSH config */
-	conf := ClientConfig(*user, *keyFile, *pass)
+	conf := ClientConfig(*user, *keyFile, *pass, *allowKI)
 
 	/* Start attackers */
 	var (

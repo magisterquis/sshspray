@@ -5,7 +5,7 @@ package main
  * Roll an SSH client config
  * By J. Stuart McMurray
  * Created 20180209
- * Last Modified 20180209
+ * Last Modified 20190211
  */
 
 import (
@@ -18,8 +18,9 @@ import (
 )
 
 // ClientConfig makes an ssh.ClientConfig from the given username and creds.
-// It terminates the program on error.
-func ClientConfig(user, keyFile, pass string) *ssh.ClientConfig {
+// It terminates the program on error.  If allowKI is true,
+// keyboard-interactive auth will also be tried
+func ClientConfig(user, keyFile, pass string, allowKI bool) *ssh.ClientConfig {
 	var cc ssh.ClientConfig
 	cc.Auth = make([]ssh.AuthMethod, 0)
 	cc.HostKeyCallback = ssh.InsecureIgnoreHostKey()
@@ -61,11 +62,17 @@ func ClientConfig(user, keyFile, pass string) *ssh.ClientConfig {
 		}
 	}
 	cc.Auth = append(cc.Auth, ssh.Password(pass))
-	cc.Auth = append(cc.Auth, ssh.KeyboardInteractive(func(
-		string, string, []string, []bool,
-	) ([]string, error) {
-		return []string{pass}, nil
-	}))
+	if allowKI {
+		cc.Auth = append(cc.Auth, ssh.KeyboardInteractive(func(
+			u string, i string, qs []string, e []bool,
+		) ([]string, error) {
+			as := make([]string, len(qs))
+			for i := range as {
+				as[i] = pass
+			}
+			return as, nil
+		}))
+	}
 
 	return &cc
 }
